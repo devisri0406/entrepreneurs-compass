@@ -7,25 +7,15 @@ import { Markdown } from "@/components/markdown";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Bookmark, Heart, Share2, Clock, ArrowLeft } from "lucide-react";
 import { toggleBookmark, toggleLike } from "@/lib/user.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/articles/$slug")({
-  loader: async ({ params }) => {
-    const { data } = await supabase.from("articles").select("*, categories(name,slug)").eq("slug", params.slug).maybeSingle();
-    if (!data) throw notFound();
-    return { article: data };
-  },
-  head: ({ loaderData }) => ({
-    meta: [
-      { title: `${loaderData?.article.title ?? "Article"} — Startup Navigator` },
-      { name: "description", content: loaderData?.article.description ?? "" },
-      { property: "og:title", content: loaderData?.article.title ?? "" },
-      { property: "og:description", content: loaderData?.article.description ?? "" },
-      ...(loaderData?.article.cover_url ? [{ property: "og:image", content: loaderData.article.cover_url }] as const : []),
-    ],
+  head: () => ({
+    meta: [{ title: "Article — Startup Navigator" }],
   }),
   errorComponent: ({ error }) => <div className="p-10 text-center text-muted-foreground">{error.message}</div>,
   notFoundComponent: () => <div className="p-10 text-center text-muted-foreground">Article not found.</div>,
@@ -33,10 +23,20 @@ export const Route = createFileRoute("/articles/$slug")({
 });
 
 function ArticlePage() {
-  const { article } = Route.useLoaderData();
+  const { slug } = Route.useParams();
   const { user } = useAuth();
   const qc = useQueryClient();
   const [progress, setProgress] = useState(0);
+
+  const { data: article, isLoading, error } = useQuery({
+    queryKey: ["article", slug],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("articles").select("*, categories(name,slug)").eq("slug", slug).maybeSingle();
+      if (error) throw error;
+      if (!data) throw notFound();
+      return data;
+    },
+  });
 
   useEffect(() => {
     const onScroll = () => {
@@ -48,20 +48,23 @@ function ArticlePage() {
     return () => document.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    if (article) document.title = `${article.title} — Startup Navigator`;
+  }, [article]);
+
   const { data: related = [] } = useQuery({
-    queryKey: ["related", article.id, article.category_id],
-    queryFn: async () => article.category_id
-      ? (await supabase.from("articles").select("id,slug,title,description").eq("category_id", article.category_id).neq("id", article.id).limit(3)).data ?? []
-      : [],
+    queryKey: ["related", article?.id, article?.category_id],
+    enabled: !!article?.category_id,
+    queryFn: async () => (await supabase.from("articles").select("id,slug,title,description").eq("category_id", article!.category_id).neq("id", article!.id).limit(3)).data ?? [],
   });
 
   const { data: interactions } = useQuery({
-    queryKey: ["article-interactions", article.id, user?.id],
-    enabled: !!user,
+    queryKey: ["article-interactions", article?.id, user?.id],
+    enabled: !!user && !!article,
     queryFn: async () => {
       const [b, l] = await Promise.all([
-        supabase.from("bookmarks").select("id").eq("user_id", user!.id).eq("article_id", article.id).maybeSingle(),
-        supabase.from("likes").select("id").eq("user_id", user!.id).eq("article_id", article.id).maybeSingle(),
+        supabase.from("bookmarks").select("id").eq("user_id", user!.id).eq("article_id", article!.id).maybeSingle(),
+        supabase.from("likes").select("id").eq("user_id", user!.id).eq("article_id", article!.id).maybeSingle(),
       ]);
       return { bookmarked: !!b.data, liked: !!l.data };
     },
@@ -70,12 +73,12 @@ function ArticlePage() {
   const toggleBookmarkFn = useServerFn(toggleBookmark);
   const toggleLikeFn = useServerFn(toggleLike);
   const bookmarkMut = useMutation({
-    mutationFn: () => toggleBookmarkFn({ data: { articleId: article.id } }),
+    mutationFn: () => toggleBookmarkFn({ data: { articleId: article!.id } }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["article-interactions"] }); toast.success(interactions?.bookmarked ? "Bookmark removed" : "Bookmarked"); },
     onError: (e: Error) => toast.error(e.message),
   });
   const likeMut = useMutation({
-    mutationFn: () => toggleLikeFn({ data: { articleId: article.id } }),
+    mutationFn: () => toggleLikeFn({ data: { articleId: article!.id } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["article-interactions"] }),
     onError: (e: Error) => toast.error(e.message),
   });
@@ -85,10 +88,22 @@ function ArticlePage() {
     fn();
   };
 
+  if (isLoading) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-10 md:px-6">
+        <Skeleton className="h-8 w-2/3" />
+        <Skeleton className="mt-4 h-4 w-full" />
+        <Skeleton className="mt-2 h-4 w-5/6" />
+        <Skeleton className="mt-8 h-96 w-full" />
+      </div>
+    );
+  }
+  if (error || !article) return <div className="p-10 text-center text-muted-foreground">Article not found.</div>;
+
   return (
     <div>
       <div className="fixed left-0 right-0 top-16 z-40 h-1 bg-transparent">
-        <div className="h-full gradient-hero" style={{ width: `${progress}%` }} />
+        <div className="h-full gradient-hero transition-all" style={{ width: `${progress}%` }} />
       </div>
 
       {article.cover_url && (
