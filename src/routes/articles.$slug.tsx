@@ -55,7 +55,7 @@ function ArticlePage() {
   const { data: related = [] } = useQuery({
     queryKey: ["related", article?.id, article?.category_id],
     enabled: !!article?.category_id,
-    queryFn: async () => (await supabase.from("articles").select("id,slug,title,description").eq("category_id", article!.category_id).neq("id", article!.id).limit(3)).data ?? [],
+    queryFn: async () => (await supabase.from("articles").select("id,slug,title,description").eq("category_id", article!.category_id as string).neq("id", article!.id).limit(3)).data ?? [],
   });
 
   const { data: interactions } = useQuery({
