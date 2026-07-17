@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search, ArrowRight, Clock } from "lucide-react";
 
+interface ExploreSearch { q?: string; category?: string; sort?: "newest" | "oldest" | "title" }
 const searchSchema = z.object({
   q: z.string().optional().catch(""),
   category: z.string().optional().catch(""),
@@ -23,7 +24,7 @@ export const Route = createFileRoute("/explore")({
       { name: "description", content: "Browse 100+ in-depth guides across 25 startup topics: registration, funding, marketing, hiring, legal, and more." },
     ],
   }),
-  validateSearch: (s) => searchSchema.parse(s),
+  validateSearch: (s): ExploreSearch => searchSchema.parse(s) as ExploreSearch,
   component: Explore,
 });
 
