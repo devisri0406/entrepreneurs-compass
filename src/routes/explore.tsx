@@ -70,7 +70,7 @@ function Explore() {
 
       <form
         className="flex flex-col gap-3 md:flex-row md:items-center"
-        onSubmit={(e) => { e.preventDefault(); navigate({ search: (s) => ({ ...s, q }) }); }}
+        onSubmit={(e) => { e.preventDefault(); navigate({ search: (s: ExploreSearch) => ({ ...s, q }) }); }}
       >
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -78,7 +78,7 @@ function Explore() {
         </div>
         <select
           value={search.sort ?? "newest"}
-          onChange={(e) => navigate({ search: (s) => ({ ...s, sort: e.target.value as "newest" | "oldest" | "title" }) })}
+          onChange={(e) => navigate({ search: (s: ExploreSearch) => ({ ...s, sort: e.target.value as "newest" | "oldest" | "title" }) })}
           className="rounded-md border bg-background px-3 py-2 text-sm"
         >
           <option value="newest">Newest</option>
@@ -89,9 +89,9 @@ function Explore() {
       </form>
 
       <div className="mt-6 flex flex-wrap gap-2">
-        <button className={chipCls(!activeCat)} onClick={() => navigate({ search: (s) => ({ ...s, category: undefined }) })}>All</button>
+        <button className={chipCls(!activeCat)} onClick={() => navigate({ search: (s: ExploreSearch) => ({ ...s, category: undefined }) })}>All</button>
         {categories.map((c) => (
-          <button key={c.id} className={chipCls(activeCat === c.slug)} onClick={() => navigate({ search: (s) => ({ ...s, category: c.slug }) })}>
+          <button key={c.id} className={chipCls(activeCat === c.slug)} onClick={() => navigate({ search: (s: ExploreSearch) => ({ ...s, category: c.slug }) })}>
             {c.name}
           </button>
         ))}
