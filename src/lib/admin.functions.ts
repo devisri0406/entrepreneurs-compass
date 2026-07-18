@@ -61,18 +61,10 @@ export const deleteArticle = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// grantSelfAdmin was removed for security. Admin role must be assigned manually via a
+// database migration or by an existing admin — never claimable through a public endpoint.
 export const grantSelfAdmin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    // Bootstrap: allow the FIRST user to claim admin. After the first admin exists, this is a no-op.
-    const { data: existing } = await context.supabase.from("user_roles").select("id").eq("role", "admin").limit(1);
-    if (existing && existing.length > 0) {
-      const { data: mine } = await context.supabase
-        .from("user_roles").select("id").eq("user_id", context.userId).eq("role", "admin").maybeSingle();
-      if (!mine) throw new Error("Admin already exists. Ask an admin to grant you access.");
-      return { alreadyAdmin: true };
-    }
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await supabaseAdmin.from("user_roles").insert({ user_id: context.userId, role: "admin" });
-    return { granted: true };
+  .handler(async () => {
+    throw new Error("This endpoint is disabled. Contact an administrator to request access.");
   });

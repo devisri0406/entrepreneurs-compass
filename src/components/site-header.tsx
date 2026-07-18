@@ -15,6 +15,8 @@ const nav = [
   { to: "/explore", label: "Explore" },
   { to: "/ai", label: "AI Advisor" },
   { to: "/resources", label: "Resources" },
+  { to: "/about", label: "About" },
+  { to: "/contact", label: "Contact" },
 ];
 
 export function SiteHeader() {

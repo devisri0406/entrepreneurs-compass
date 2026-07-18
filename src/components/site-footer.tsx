@@ -33,8 +33,8 @@ export function SiteFooter() {
         <div>
           <div className="mb-3 text-sm font-semibold">Company</div>
           <ul className="space-y-2 text-sm text-muted-foreground">
-            <li>Built for builders</li>
-            <li>Made with care</li>
+            <li><Link to="/about" className="hover:text-foreground">About</Link></li>
+            <li><Link to="/contact" className="hover:text-foreground">Contact</Link></li>
           </ul>
         </div>
       </div>
