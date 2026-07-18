@@ -13,8 +13,8 @@ export const Route = createFileRoute("/")({
     meta: [
       { title: "Startup Navigator — AI Guide to Building Startups" },
       { name: "description", content: "Explore 25+ startup topics, get AI-powered answers, and access curated resources — from registration to exit." },
-      { property: "og:title", content: "Startup Navigator" },
-      { property: "og:description", content: "Your AI-powered guide to building successful startups." },
+      { property: "og:title", content: "Startup Navigator — AI Guide to Building Startups" },
+      { property: "og:description", content: "Explore 25+ startup topics, get AI-powered answers, and access curated resources — from registration to exit." },
     ],
   }),
   component: Home,
