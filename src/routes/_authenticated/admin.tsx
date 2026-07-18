@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { adminStats, grantSelfAdmin, saveArticle, deleteArticle } from "@/lib/admin.functions";
+import { adminStats, saveArticle, deleteArticle } from "@/lib/admin.functions";
 import { isAdmin } from "@/lib/user.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,7 +30,7 @@ function Admin() {
   const qc = useQueryClient();
   const isAdminFn = useServerFn(isAdmin);
   const statsFn = useServerFn(adminStats);
-  const grantFn = useServerFn(grantSelfAdmin);
+  // grantSelfAdmin removed for security — admin role is assigned manually by an existing admin.
   const saveFn = useServerFn(saveArticle);
   const deleteFn = useServerFn(deleteArticle);
 
@@ -63,11 +63,6 @@ function Admin() {
     onSuccess: () => { toast.success("Deleted"); qc.invalidateQueries({ queryKey: ["admin-articles"] }); qc.invalidateQueries({ queryKey: ["admin-stats"] }); },
   });
 
-  const grant = useMutation({
-    mutationFn: () => grantFn(),
-    onSuccess: () => { toast.success("You are now an admin"); qc.invalidateQueries({ queryKey: ["is-admin"] }); },
-    onError: (e: Error) => toast.error(e.message),
-  });
 
   if (checking) return <div className="p-10 text-center text-muted-foreground">Loading…</div>;
 
@@ -76,8 +71,7 @@ function Admin() {
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
         <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-xl gradient-hero text-primary-foreground shadow-glow"><ShieldCheck className="h-5 w-5" /></div>
         <h1 className="text-2xl font-bold">Admin access required</h1>
-        <p className="mt-2 text-muted-foreground">Only admins can access this page. If no admin exists yet, you can claim the first admin role.</p>
-        <Button onClick={() => grant.mutate()} className="mt-6 gradient-hero text-primary-foreground shadow-glow">Claim admin role</Button>
+        <p className="mt-2 text-muted-foreground">This area is restricted. Ask an existing administrator to grant you access.</p>
       </div>
     );
   }

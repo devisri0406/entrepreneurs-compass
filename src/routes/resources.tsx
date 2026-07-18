@@ -11,6 +11,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toggleBookmark } from "@/lib/user.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { escapeIlikePattern, sanitizeSearchTerm } from "@/lib/search-utils";
 
 export const Route = createFileRoute("/resources")({
   head: () => ({
@@ -33,7 +34,10 @@ function Resources() {
     queryFn: async () => {
       let query = supabase.from("resources").select("*");
       if (cat) query = query.eq("category", cat);
-      if (q) query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%`);
+      if (q) {
+        const safe = escapeIlikePattern(sanitizeSearchTerm(q));
+        if (safe) query = query.or(`title.ilike.%${safe}%,description.ilike.%${safe}%`);
+      }
       return (await query.order("created_at", { ascending: false }).limit(200)).data ?? [];
     },
   });

@@ -2,6 +2,26 @@
 // `code`, ```code blocks```, - lists, 1. ordered lists, > quotes, links, paragraphs.
 import { type JSX } from "react";
 
+// Allow only safe URL schemes. javascript:, data:, vbscript:, file: are blocked.
+function safeUrl(raw: string): string {
+  const url = raw.trim();
+  if (!url) return "#";
+  // Relative URLs, anchors, and protocol-relative same-origin are allowed.
+  if (url.startsWith("/") || url.startsWith("#") || url.startsWith("./") || url.startsWith("../")) {
+    return url;
+  }
+  try {
+    const parsed = new URL(url, "https://placeholder.local");
+    const scheme = parsed.protocol.toLowerCase();
+    if (scheme === "http:" || scheme === "https:" || scheme === "mailto:") {
+      return url;
+    }
+    return "#";
+  } catch {
+    return "#";
+  }
+}
+
 function inline(text: string): (string | JSX.Element)[] {
   const out: (string | JSX.Element)[] = [];
   const re = /(\*\*([^*]+)\*\*)|(\*([^*]+)\*)|(`([^`]+)`)|\[([^\]]+)\]\(([^)]+)\)/g;
@@ -11,7 +31,7 @@ function inline(text: string): (string | JSX.Element)[] {
     if (m[2]) out.push(<strong key={i++}>{m[2]}</strong>);
     else if (m[4]) out.push(<em key={i++}>{m[4]}</em>);
     else if (m[6]) out.push(<code key={i++} className="rounded bg-muted px-1.5 py-0.5 text-[0.85em]">{m[6]}</code>);
-    else if (m[7]) out.push(<a key={i++} href={m[8]} target="_blank" rel="noreferrer" className="text-primary underline underline-offset-4">{m[7]}</a>);
+    else if (m[7]) out.push(<a key={i++} href={safeUrl(m[8])} target="_blank" rel="noreferrer noopener" className="text-primary underline underline-offset-4">{m[7]}</a>);
     last = re.lastIndex;
   }
   if (last < text.length) out.push(text.slice(last));
