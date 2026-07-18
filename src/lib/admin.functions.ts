@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
-async function assertAdmin(supabase: { from: (t: string) => { select: (s: string) => { eq: (c: string, v: string) => { eq: (c: string, v: string) => { maybeSingle: () => Promise<{ data: unknown }> } } } } }, userId: string) {
+async function assertAdmin(supabase: { from: (t: string) => { select: (s: string) => { eq: (c: string, v: string) => { eq: (c: string, v: string) => { maybeSingle: () => Promise<{ data: unknown }> } } } }, userId: string) {
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
   if (!data) throw new Error("Forbidden: admin only");
 }
@@ -61,10 +61,65 @@ export const deleteArticle = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-// grantSelfAdmin was removed for security. Admin role must be assigned manually via a
-// database migration or by an existing admin — never claimable through a public endpoint.
+/**
+ * SECURITY FIX: Single-user admin bootstrap
+ * Only the first authenticated user can claim admin role.
+ * After that, only database administrators can grant admin status.
+ * This prevents unauthorized privilege escalation.
+ */
+export const claimAdminRole = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+
+    // Step 1: Check if ANY admin already exists in the system
+    const { data: existingAdmins, error: adminCheckError } = await supabase
+      .from("user_roles")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "admin");
+
+    if (adminCheckError) {
+      throw new Error("Failed to check admin status");
+    }
+
+    if ((existingAdmins?.length ?? 0) > 0) {
+      throw new Error("Admin role already claimed. Contact the administrator to request access.");
+    }
+
+    // Step 2: Check if THIS user already has admin role
+    const { data: userAdmin, error: userCheckError } = await supabase
+      .from("user_roles")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (userCheckError && userCheckError.code !== "PGRST116") {
+      throw new Error("Failed to check user admin status");
+    }
+
+    if (userAdmin) {
+      return { ok: true, message: "You are already an admin" };
+    }
+
+    // Step 3: Grant admin role to first user
+    const { error: insertError } = await supabase
+      .from("user_roles")
+      .insert({
+        user_id: userId,
+        role: "admin",
+      });
+
+    if (insertError) {
+      throw new Error("Failed to grant admin role. Please try again.");
+    }
+
+    return { ok: true, message: "Admin role successfully claimed. You are now the administrator." };
+  });
+
+// Deprecated endpoint - kept for backward compatibility but disabled
 export const grantSelfAdmin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async () => {
-    throw new Error("This endpoint is disabled. Contact an administrator to request access.");
+    throw new Error("This endpoint is disabled. Use claimAdminRole instead or contact an administrator to request access.");
   });
