@@ -1,5 +1,7 @@
 # Startup Navigator - Entrepreneurs Compass
 
+https://entrepreneurs-compass.vercel.app/
+
 An AI-powered SaaS platform that helps entrepreneurs explore every aspect of building and growing a startup — from idea validation and company registration to scaling and exit strategies.
 
 ## Product Overview
