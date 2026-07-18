@@ -75,10 +75,6 @@ function Admin() {
       </div>
     );
   }
-        <Button onClick={() => grant.mutate()} className="mt-6 gradient-hero text-primary-foreground shadow-glow">Claim admin role</Button>
-      </div>
-    );
-  }
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 md:px-6">
