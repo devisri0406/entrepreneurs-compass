@@ -10,5 +10,9 @@ export function escapeIlikePattern(input: string): string {
 }
 
 export function sanitizeSearchTerm(input: string, maxLen = 100): string {
-  return input.slice(0, maxLen).replace(/[\x00-\x1f\x7f]/g, "").trim();
+  return input
+    .slice(0, maxLen)
+    .replace(/[\x00-\x1f\x7f]/g, "") // Remove control characters
+    .replace(/[;'"]/g, "") // Block SQL injection special characters
+    .trim();
 }
