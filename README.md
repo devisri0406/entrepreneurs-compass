@@ -1,135 +1,391 @@
-# Startup Navigator
+# Startup Navigator - Entrepreneurs Compass
 
-An AI-powered SaaS platform to help entrepreneurs explore every aspect of building and growing a startup — from company registration to exit.
+An AI-powered SaaS platform that helps entrepreneurs explore every aspect of building and growing a startup — from idea validation and company registration to scaling and exit strategies.
 
-## Features
+## Product Overview
 
-- **Home** — premium landing with hero, features, stats, testimonials, FAQs
-- **Explore Topics** — 100+ in-depth articles across 25 categories with search, filters, sorting
-- **Article pages** — Markdown content, reading progress, bookmark, like, share, related articles
-- **Startup AI Advisor** — ChatGPT-style RAG chat that searches the knowledge base and cites sources
-- **Resources** — 75+ curated resources (government links, templates, tools) with search & save
-- **Dashboard** — personal stats, weekly search chart, recent chats
-- **Profile** — edit name/bio, sign out
-- **Bookmarks** — view saved articles and resources
-- **Admin** — protected CRUD for articles, first-admin bootstrap
-- **Auth** — Email/password + Google OAuth (Lovable-managed)
-- **Dark mode** — full theme support, persisted
-- **SEO** — per-page metadata, OG tags, sitemap.xml, robots.txt
+Startup Navigator is an AI-powered startup knowledge platform designed to guide founders through every stage of their entrepreneurial journey.
 
-## Stack
+The platform combines:
+
+- A structured startup knowledge base
+- AI-powered startup assistance
+- Curated resources and tools
+- Founder dashboards and personalization
+
+It helps entrepreneurs make informed decisions faster by providing reliable startup information and AI-guided insights.
+
+---
+
+# Features
+
+- **Home** — Premium landing page with hero section, features, stats, testimonials, FAQs, About section, and Contact section
+- **About** — Explains the mission, vision, and purpose behind Startup Navigator
+- **Contact** — Allows users to reach out for questions, feedback, and support
+- **Explore Topics** — 100+ in-depth articles across 25 categories with search, filters, and sorting
+- **Article Pages** — Markdown content, reading progress, bookmarks, likes, shares, and related articles
+- **Startup AI Advisor** — ChatGPT-style RAG assistant that searches the knowledge base and provides cited answers
+- **Resources** — 75+ curated startup resources including government links, templates, and tools with search and save functionality
+- **Dashboard** — Personal statistics, weekly search activity, recent AI conversations, and user insights
+- **Profile** — Edit profile information and manage account settings
+- **Bookmarks** — View saved articles and resources
+- **Admin Panel** — Protected content management system for administrators
+- **Authentication** — Email/password authentication and Google OAuth
+- **Dark Mode** — Complete theme support with persistence
+- **SEO** — Per-page metadata, Open Graph tags, sitemap.xml, and robots.txt
+
+---
+
+# User Roles & Permissions
+
+Startup Navigator supports two user roles:
+
+## User
+
+Users can:
+
+- Browse startup articles and resources
+- Explore startup topics
+- Search the knowledge base
+- Use Startup AI Advisor
+- Receive AI-generated startup guidance
+- Bookmark articles and resources
+- Like articles
+- Manage profile information
+- View dashboard statistics
+- Access saved conversations
+
+## Admin
+
+Admins have all user permissions plus:
+
+- Access protected admin dashboard
+- Create new articles
+- Edit existing articles
+- Delete articles
+- Manage resources
+- Manage FAQs
+- Maintain startup knowledge content
+
+Role permissions are enforced through Supabase authentication, database Row-Level Security policies, and server-side authorization checks.
+
+---
+
+# Content Management
+
+Admins can manage the Startup Navigator knowledge base through a protected admin dashboard.
+
+Admin capabilities include:
+
+- Creating Markdown-based articles
+- Updating existing articles
+- Removing outdated content
+- Managing startup categories
+- Managing curated resources
+- Managing FAQs
+
+All content operations are protected using:
+
+- Authentication checks
+- Admin role verification
+- Row-Level Security policies
+- Server-side validation
+
+---
+
+# Technology Stack
 
 - **Framework:** TanStack Start v1 (React 19 + Vite 7 + TypeScript, SSR/edge)
-- **UI:** Tailwind CSS v4 + shadcn/ui + Lucide + Recharts
-- **Backend:** Lovable Cloud (Postgres + Auth + RLS)
-- **AI:** Lovable AI Gateway (Google Gemini 2.5 Flash) with tsvector-based RAG
-- **Data fetching:** TanStack Query + TanStack Server Functions
+- **UI:** Tailwind CSS v4 + shadcn/ui + Lucide Icons + Recharts
+- **Backend:** Lovable Cloud (PostgreSQL + Authentication + Row-Level Security)
+- **AI:** Lovable AI Gateway using Google Gemini 2.5 Flash with tsvector-based RAG
+- **Data Fetching:** TanStack Query + TanStack Server Functions
+- **Deployment:** Vercel
 
-## Architecture
+---
+
+# Architecture
 
 ```
 Browser (React)
-  │  UI: shadcn/ui + Tailwind v4 tokens (styles.css)
-  │  State: TanStack Query + Supabase auth listener
+  │
+  │ UI Layer
+  │ shadcn/ui + Tailwind CSS v4
+  │
+  │ State Management
+  │ TanStack Query + Supabase Auth Listener
   ▼
-TanStack Start Server Functions  ─────▶  Lovable AI Gateway
-  · requireSupabaseAuth (bearer)              (Gemini 2.5 Flash)
-  · askAdvisor → RAG: tsvector search
-                 → prompt with cited context
-                 → persist conversation + messages
-  ▼
-Lovable Cloud (Postgres)
-  · profiles / user_roles / has_role()
-  · categories · articles (search_tsv GIN)
-  · resources · faqs
-  · bookmarks · likes
-  · chat_conversations · chat_messages
-  · search_history
-  All tables: RLS enabled, per-user policies.
+
+TanStack Start Server Functions
+
+  ├── Authentication Middleware
+  │      requireSupabaseAuth
+  │
+  ├── User Functions
+  │      Profile management
+  │      Bookmarks
+  │      Likes
+  │      Search history
+  │
+  ├── Admin Functions
+  │      Article CRUD
+  │      Resource management
+  │      FAQ management
+  │
+  └── AI Functions
+         askAdvisor
+         RAG search
+   AI response generation
+
+              ▼
+
+      Lovable AI Gateway
+
+              ▼
+
+    Google Gemini 2.5 Flash
+
+              ▼
+
+     Lovable Cloud PostgreSQL
+
+  profiles
+  user_roles
+  categories
+  articles
+  resources
+  faqs
+  bookmarks
+  likes
+  chat_conversations
+  chat_messages
+  search_history
+
+All database tables are protected with Row-Level Security.
 ```
 
-### AI RAG Workflow
+---
 
-1. User submits a question via `askAdvisor` server function.
-2. Postgres full-text search (`websearch_to_tsquery` on `articles.search_tsv`) returns the top 5 relevant articles.
-3. The top hits are injected into the system prompt as cited source excerpts.
-4. Prior conversation messages are loaded (last 20) to preserve context.
-5. The Lovable AI Gateway (`google/gemini-2.5-flash`) generates a Markdown answer.
-6. Both user and assistant messages are persisted with sources and confidence.
-7. Fallback: if the gateway fails, the response falls back to the top knowledge-base hits.
+# AI RAG Workflow
 
-## Database Schema
+1. User submits a question through Startup AI Advisor.
+2. The `askAdvisor` server function receives the request.
+3. PostgreSQL full-text search (`websearch_to_tsquery`) searches relevant articles.
+4. The top 5 matching articles are selected.
+5. Relevant article content is injected into the AI prompt as cited context.
+6. Previous conversation messages are loaded to maintain context.
+7. Google Gemini 2.5 Flash generates a Markdown response.
+8. User and assistant messages are stored with sources and confidence information.
+9. If AI generation fails, the system falls back to knowledge-base search results.
+
+---
+
+# Database Schema
 
 | Table | Purpose |
-|-------|---------|
+|---|---|
 | `profiles` | Public user profiles |
-| `user_roles` | Role assignments (`admin` / `user`) — separate from profiles to prevent privilege escalation |
-| `categories` | 25 topic categories |
-| `articles` | 100 Markdown articles with generated `search_tsv` for full-text search |
-| `resources` | 75 curated resource links |
-| `faqs` | 50 FAQs |
-| `bookmarks` | Per-user saves for articles/resources |
-| `likes` | Per-user likes on articles |
-| `chat_conversations` / `chat_messages` | Persisted AI chat history with sources |
-| `search_history` | Per-user query log |
+| `user_roles` | Role assignments (`admin` / `user`) separate from profiles to prevent privilege escalation |
+| `categories` | Startup topic categories |
+| `articles` | Markdown startup articles with generated search indexes |
+| `resources` | Curated startup resources |
+| `faqs` | Frequently asked questions |
+| `bookmarks` | User saved articles and resources |
+| `likes` | User article likes |
+| `chat_conversations` | Saved AI conversation sessions |
+| `chat_messages` | AI conversation messages and responses |
+| `search_history` | User search activity |
 
-RLS: enabled on every table, scoped to `auth.uid()` for user-owned data; content tables are publicly readable and admin-writable via `has_role(auth.uid(), 'admin')`.
+### Database Security
 
-## Folder Structure
+- RLS enabled on every table
+- User-owned data scoped using `auth.uid()`
+- Public content readable where required
+- Write operations restricted to administrators
+- Admin verification handled through `has_role()` SECURITY DEFINER helper
+
+---
+
+# Folder Structure
 
 ```
 src/
-  assets/          # generated hero image
-  components/      # SiteHeader, SiteFooter, Markdown, ThemeProvider + shadcn ui
-  hooks/           # use-auth
-  integrations/    # generated supabase + lovable auth clients
-  lib/             # ai.functions.ts, user.functions.ts, admin.functions.ts, ai-gateway.server.ts
-  routes/          # file-based routes
-    __root.tsx     # shell (header, footer, providers, auth listener)
-    index.tsx      # /
-    explore.tsx    # /explore
-    articles.$slug.tsx  # /articles/:slug
-    ai.tsx         # /ai (Startup AI Advisor)
-    resources.tsx  # /resources
-    auth.tsx       # /auth
+  assets/
+    # Generated images and static assets
+
+  components/
+    # SiteHeader
+    # SiteFooter
+    # Markdown renderer
+    # ThemeProvider
+    # shadcn/ui components
+
+  hooks/
+    # Authentication hooks
+
+  integrations/
+    # Supabase and Lovable generated clients
+
+  lib/
+    # ai.functions.ts
+    # user.functions.ts
+    # admin.functions.ts
+    # ai-gateway.server.ts
+
+  routes/
+
+    __root.tsx
+      # Application shell
+      # Header, footer, providers, auth listener
+
+    index.tsx
+      # Home page
+
+    explore.tsx
+      # Explore startup topics
+
+    articles.$slug.tsx
+      # Article detail pages
+
+    ai.tsx
+      # Startup AI Advisor
+
+    resources.tsx
+      # Resources library
+
+    auth.tsx
+      # Authentication
+
+    about.tsx
+      # About page
+
+    contact.tsx
+      # Contact page
+
     sitemap[.]xml.ts
+
     _authenticated/
-      route.tsx    # auth gate (ssr: false)
+
+      route.tsx
+        # Authentication protection
+
       dashboard.tsx
+        # User dashboard
+
       profile.tsx
+        # User profile
+
       bookmarks.tsx
+        # Saved content
+
       admin.tsx
-  styles.css       # design system (tokens, gradients, glass, elegant shadows)
+        # Admin dashboard
+
+  styles.css
+    # Design system
+    # Theme tokens
+    # Gradients
+    # Glass effects
+    # Shadows
 ```
 
-## Getting Started
+---
 
-Lovable Cloud is already connected. To run locally:
+# Getting Started
+
+Startup Navigator was built using Lovable and connected with Lovable Cloud.
+
+To run locally:
 
 ```bash
 bun install
 bun dev
 ```
 
-Environment variables are auto-provisioned by Lovable Cloud (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `LOVABLE_API_KEY`). No `.env` editing required.
+Environment variables are automatically provided by Lovable Cloud:
 
-## Admin Bootstrap
+```
+SUPABASE_URL
+SUPABASE_PUBLISHABLE_KEY
+LOVABLE_API_KEY
+```
 
-The first authenticated user to visit `/admin` can click **Claim admin role** to become admin. After that, only existing admins can create additional admins (via a manual DB action).
+No manual environment configuration is required.
 
-## Deployment
+---
 
-This app is deployed via Lovable's edge deployment (Cloudflare Workers under the hood). Click **Publish** in the Lovable editor to ship.
+# Admin Bootstrap
 
-## Security
+The first administrator can be initialized through the admin bootstrap process.
 
-- JWT auth via Supabase (Lovable Cloud)
-- Row-Level Security on every table
-- Bearer tokens attached to server functions via `attachSupabaseAuth` middleware
-- Zod input validation on every server function
-- Roles stored in a separate `user_roles` table with `has_role()` SECURITY DEFINER helper
-- Server-only secrets never exposed to the client
+After the first admin account is created:
 
-## Credits
+- Only existing administrators can grant admin permissions
+- Normal users cannot modify roles
+- Role permissions are controlled through database policies
 
-Built with love for founders. Design inspired by Stripe, Linear, and Notion.
+---
+
+# Deployment
+
+The deployment workflow:
+
+```
+    Lovable
+       |
+       ▼
+GitHub Repository
+       |
+       ▼
+Vercel Deployment
+
+```
+The application was built using Lovable, version-controlled with GitHub, and deployed on Vercel.
+
+Post-deployment maintenance:
+- Monitored application behavior after deployment
+- Identified and fixed bugs independently
+- Improved stability and user experience through continuous updates
+- Maintained code quality and deployment workflow through GitHub version control
+
+---
+
+# Security
+
+Startup Navigator follows production-focused security practices:
+
+- JWT authentication using Supabase Auth
+- Row-Level Security enabled on all database tables
+- Server-side authorization checks
+- Bearer tokens attached to server functions
+- Zod validation for server inputs
+- Admin roles stored separately from user profiles
+- SECURITY DEFINER role verification helper
+- Server-only secrets never exposed to clients
+
+---
+
+# Future Roadmap
+
+Planned improvements:
+
+- AI startup idea validation
+- Business model canvas generator
+- Startup cost calculator
+- Business plan generator
+- Investor pitch deck generator
+- Founder community features
+- Multi-language support
+- Advanced AI startup coaching
+
+---
+
+# Credits
+
+Built with love for founders.
+
+Design inspiration:
+
+- Stripe
+- Linear
+- Notion
