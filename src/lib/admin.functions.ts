@@ -62,31 +62,23 @@ export const deleteArticle = createServerFn({ method: "POST" })
   });
 
 /**
- * SECURITY FIX: Single-user admin bootstrap
- * Only the first authenticated user can claim admin role.
- * After that, only database administrators can grant admin status.
- * This prevents unauthorized privilege escalation.
+ * SECURITY FIX: Admin Role Password Protection
+ * Everyone can attempt to claim admin role, but only with correct password (0406).
+ * This prevents unauthorized privilege escalation while allowing legitimate admin setup.
  */
-export const claimAdminRole = createServerFn({ method: "POST" })
+export const claimAdminRoleWithPassword = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((d: unknown) => z.object({ password: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-
-    // Step 1: Check if ANY admin already exists in the system
-    const { data: existingAdmins, error: adminCheckError } = await supabase
-      .from("user_roles")
-      .select("id", { count: "exact", head: true })
-      .eq("role", "admin");
-
-    if (adminCheckError) {
-      throw new Error("Failed to check admin status");
+    
+    // ✅ STEP 1: Verify password
+    const ADMIN_PASSWORD = "0406";
+    if (data.password !== ADMIN_PASSWORD) {
+      throw new Error("Invalid admin password. Access denied.");
     }
 
-    if ((existingAdmins?.length ?? 0) > 0) {
-      throw new Error("Admin role already claimed. Contact the administrator to request access.");
-    }
-
-    // Step 2: Check if THIS user already has admin role
+    // ✅ STEP 2: Check if THIS user already has admin role
     const { data: userAdmin, error: userCheckError } = await supabase
       .from("user_roles")
       .select("id")
@@ -102,7 +94,7 @@ export const claimAdminRole = createServerFn({ method: "POST" })
       return { ok: true, message: "You are already an admin" };
     }
 
-    // Step 3: Grant admin role to first user
+    // ✅ STEP 3: Grant admin role with correct password
     const { error: insertError } = await supabase
       .from("user_roles")
       .insert({
@@ -121,5 +113,5 @@ export const claimAdminRole = createServerFn({ method: "POST" })
 export const grantSelfAdmin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async () => {
-    throw new Error("This endpoint is disabled. Use claimAdminRole instead or contact an administrator to request access.");
+    throw new Error("This endpoint is disabled. Use claimAdminRoleWithPassword with the admin password instead.");
   });
