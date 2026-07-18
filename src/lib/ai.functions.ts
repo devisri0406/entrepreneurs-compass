@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { callLovableAI, type ChatMessage } from "./ai-gateway.server";
+import { escapeIlikePattern } from "./search-utils";
 
 const AskSchema = z.object({
   question: z.string().trim().min(2).max(2000),
@@ -45,7 +46,11 @@ export const askAdvisor = createServerFn({ method: "POST" })
 
     // Fallback: keyword LIKE search.
     if (!hits.length) {
-      const kw = data.question.split(/\s+/).filter((w) => w.length > 3).slice(0, 4);
+      const kw = data.question.split(/\s+/)
+        .filter((w) => w.length > 3)
+        .slice(0, 4)
+        .map((w) => escapeIlikePattern(w))
+        .filter(Boolean);
       const orExpr = kw.length ? kw.map((w) => `title.ilike.%${w}%,description.ilike.%${w}%`).join(",") : "";
       if (orExpr) {
         const { data: fb } = await supabase

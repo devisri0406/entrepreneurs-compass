@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search, ArrowRight, Clock } from "lucide-react";
+import { escapeIlikePattern, sanitizeSearchTerm } from "@/lib/search-utils";
 
 interface ExploreSearch { q?: string; category?: string; sort?: "newest" | "oldest" | "title" }
 const searchSchema = z.object({
@@ -46,7 +47,10 @@ function Explore() {
         const cat = (await supabase.from("categories").select("id").eq("slug", search.category).maybeSingle()).data;
         if (cat) query = query.eq("category_id", cat.id);
       }
-      if (search.q) query = query.or(`title.ilike.%${search.q}%,description.ilike.%${search.q}%`);
+      if (search.q) {
+        const safe = escapeIlikePattern(sanitizeSearchTerm(search.q));
+        if (safe) query = query.or(`title.ilike.%${safe}%,description.ilike.%${safe}%`);
+      }
       const sort = search.sort ?? "newest";
       if (sort === "newest") query = query.order("created_at", { ascending: false });
       else if (sort === "oldest") query = query.order("created_at", { ascending: true });
